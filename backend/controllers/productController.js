@@ -13,7 +13,8 @@ const addProduct = async (req, res) => {
 
         const images = [image1, image2, image3, image4].filter((item) => item !== undefined)
 
-        const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 4000}`
+        const requestBaseUrl = `${req.protocol}://${req.get('host')}`
+        const backendUrl = process.env.BACKEND_URL || requestBaseUrl
         const imagesUrl = images.map((item) => `${backendUrl}/uploads/${item.filename}`)
 
         const productData = {
