@@ -81,6 +81,7 @@ const registerUser = async (req, res) => {
 }
 
 // Route for admin login
+// Route for admin login
 const adminLogin = async (req, res) => {
     try {
         const email = (req.body.email || '').trim().toLowerCase()
@@ -91,11 +92,15 @@ const adminLogin = async (req, res) => {
 
         const matchesEnv = email === envAdminEmail && password === envAdminPassword
 
-        let matchesSeededAdmin = false
+        let matchesSeededAdmin = false;
+        console.log(matchesEnv, "matchesEnv");
         if (!matchesEnv) {
-            const adminUser = await userModel.findOne({ email })
-            if (adminUser && envAdminEmail && email === envAdminEmail) {
-                matchesSeededAdmin = await bcrypt.compare(password, adminUser.password)
+            const adminUser = await userModel.findOne({ email });
+            console.log(adminUser, "adminUser");
+            if (adminUser) {
+                console.log(password, adminUser.password, "comparing passwords");
+                matchesSeededAdmin = await bcrypt.compare(password, adminUser.password);
+                console.log(matchesSeededAdmin, "matchesSeededAdmin");
             }
         }
 

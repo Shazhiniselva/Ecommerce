@@ -2,13 +2,9 @@ import bcrypt from 'bcrypt'
 import userModel from '../models/userModel.js'
 
 const seedAdminIfMissing = async () => {
-    const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase()
-    const adminPassword = process.env.ADMIN_PASSWORD
-
-    if (!adminEmail || !adminPassword) {
-        console.log('ADMIN_EMAIL or ADMIN_PASSWORD not set. Skipping admin seed.')
-        return
-    }
+    // Use hardcoded values instead of env variables
+    const adminEmail = 'admin@example.com'
+    const adminPassword = 'Admin@123'
 
     const existingAdmin = await userModel.findOne({ email: adminEmail })
 
@@ -28,7 +24,7 @@ const seedAdminIfMissing = async () => {
     if (!isSamePassword) {
         existingAdmin.password = await bcrypt.hash(adminPassword, 10)
         await existingAdmin.save()
-        console.log('Updated admin user password from env value.')
+        console.log('Updated admin user password.')
         return
     }
 
