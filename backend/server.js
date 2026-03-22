@@ -9,6 +9,7 @@ const __dirname = dirname(__filename)
 dotenv.config({ path: join(__dirname, '.env') })
 
 import connectDB from './config/mongodb.js'
+import seedAdminIfMissing from './utils/seedAdminOnStart.js'
 import seedProductsIfEmpty from './utils/seedOnStart.js'
 import userRouter from './routes/userRoute.js'
 import productRouter from './routes/productRoute.js'
@@ -37,6 +38,7 @@ app.get('/',(req,res)=>{
 const startServer = async () => {
     try {
         await connectDB()
+        await seedAdminIfMissing()
         await seedProductsIfEmpty()
 
         app.listen(port, '0.0.0.0', () => {
