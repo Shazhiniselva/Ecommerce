@@ -83,15 +83,28 @@ const registerUser = async (req, res) => {
 // Route for admin login
 const adminLogin = async (req, res) => {
     try {
-        
-        const {email,password} = req.body
+        const email = (req.body.email || '').trim().toLowerCase()
+        const password = req.body.password || ''
 
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            const token = jwt.sign(email+password,process.env.JWT_SECRET);
-            res.json({success:true,token})
-        } else {
-            res.json({success:false,message:"Invalid credentials"})
+        const envAdminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase()
+        const envAdminPassword = process.env.ADMIN_PASSWORD || ''
+
+        const matchesEnv = email === envAdminEmail && password === envAdminPassword
+
+        let matchesSeededAdmin = false
+        if (!matchesEnv) {
+            const adminUser = await userModel.findOne({ email })
+            if (adminUser && envAdminEmail && email === envAdminEmail) {
+                matchesSeededAdmin = await bcrypt.compare(password, adminUser.password)
+            }
         }
+
+        if (!matchesEnv && !matchesSeededAdmin) {
+            return res.json({ success: false, message: "Invalid credentials" })
+        }
+
+        const token = jwt.sign(envAdminEmail + envAdminPassword, process.env.JWT_SECRET)
+        res.json({ success: true, token })
 
     } catch (error) {
         console.log(error);
