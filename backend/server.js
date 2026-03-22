@@ -1,6 +1,13 @@
 import express from 'express'
 import cors from 'cors'
-import 'dotenv/config'
+import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+dotenv.config({ path: join(__dirname, '.env') })
+
 import connectDB from './config/mongodb.js'
 import userRouter from './routes/userRoute.js'
 import productRouter from './routes/productRoute.js'
@@ -15,6 +22,7 @@ connectDB()
 // middlewares
 app.use(express.json())
 app.use(cors())
+app.use('/uploads', express.static(join(__dirname, 'uploads')))
 
 // api endpoints
 app.use('/api/user',userRouter)
