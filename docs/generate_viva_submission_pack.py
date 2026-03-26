@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import date
 import json
 from collections import Counter
+from typing import Optional
 
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
@@ -16,17 +17,20 @@ from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor as PptRGBColor
 from pptx.enum.shapes import MSO_SHAPE
 
+from PIL import Image, ImageDraw, ImageFont
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "diagrams"
 PRODUCTS_FILE = ROOT / "backend" / "data" / "products.json"
+FRONTEND_ASSETS = ROOT / "frontend" / "src" / "assets"
 
-DOCX_OUT = DOCS / "Ecommerce_College_Submission_Report_v2.docx"
-PPTX_OUT = DOCS / "Ecommerce_Viva_Ready_Presentation_v2.pptx"
+DOCX_OUT = DOCS / "Ecommerce_College_Submission_Report_v3.docx"
+PPTX_OUT = DOCS / "Ecommerce_Viva_Ready_Presentation_v3.pptx"
 
 COLLEGE_NAME = "Mohamed Sathak College of Arts & Science"
-STUDENT_NAME = "Shalani"
+STUDENT_NAME = "Shalini"
 ROLL_NUMBER = "24MCAG001"
 
 # PPT theme colors (formal viva style: white + charcoal + gold)
@@ -37,6 +41,141 @@ PPT_TEXT = PptRGBColor(22, 22, 24)
 PPT_MUTED = PptRGBColor(92, 92, 98)
 PPT_BORDER = PptRGBColor(214, 201, 171)
 PPT_ACCENT = PptRGBColor(173, 132, 66)
+
+
+def get_font(size=22):
+    try:
+        return ImageFont.truetype("arial.ttf", size)
+    except Exception:
+        return ImageFont.load_default()
+
+
+def draw_box(draw, xy, text, fill=(245, 248, 252), outline=(44, 76, 128)):
+    draw.rounded_rectangle(xy, radius=14, fill=fill, outline=outline, width=3)
+    x1, y1, x2, y2 = xy
+    font = get_font(20)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    draw.text((x1 + (x2 - x1 - tw) / 2, y1 + (y2 - y1 - th) / 2), text, fill=(24, 34, 56), font=font)
+
+
+def draw_arrow(draw, start, end, color=(55, 55, 55), width=4):
+    draw.line([start, end], fill=color, width=width)
+    ex, ey = end
+    sx, sy = start
+    dx = ex - sx
+    dy = ey - sy
+
+    if abs(dx) > abs(dy):
+        if dx > 0:
+            tri = [(ex, ey), (ex - 14, ey - 7), (ex - 14, ey + 7)]
+        else:
+            tri = [(ex, ey), (ex + 14, ey - 7), (ex + 14, ey + 7)]
+    else:
+        if dy > 0:
+            tri = [(ex, ey), (ex - 7, ey - 14), (ex + 7, ey - 14)]
+        else:
+            tri = [(ex, ey), (ex - 7, ey + 14), (ex + 7, ey + 14)]
+    draw.polygon(tri, fill=color)
+
+
+def create_backend_module_flow(path: Path):
+    img = Image.new("RGB", (1800, 1100), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((40, 28), "Backend Module Flow", fill=(18, 50, 92), font=get_font(38))
+
+    draw_box(draw, (100, 220, 470, 360), "Express Server")
+    draw_box(draw, (600, 120, 1020, 260), "Routes")
+    draw_box(draw, (600, 320, 1020, 460), "Controllers")
+    draw_box(draw, (600, 520, 1020, 660), "Middleware")
+    draw_box(draw, (600, 720, 1020, 860), "Models")
+    draw_box(draw, (1180, 420, 1670, 560), "MongoDB")
+
+    draw_arrow(draw, (470, 290), (600, 190))
+    draw_arrow(draw, (470, 290), (600, 390))
+    draw_arrow(draw, (470, 290), (600, 590))
+    draw_arrow(draw, (470, 290), (600, 790))
+    draw_arrow(draw, (1020, 790), (1180, 490))
+    draw_arrow(draw, (1020, 390), (1180, 490))
+
+    img.save(path)
+
+
+def create_auth_flow(path: Path):
+    img = Image.new("RGB", (1800, 1200), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((40, 28), "Authentication Flow", fill=(18, 50, 92), font=get_font(38))
+
+    nodes = [
+        (620, 120, 1180, 230, "User/Admin Login Request"),
+        (620, 300, 1180, 410, "Credential Validation"),
+        (620, 480, 1180, 590, "JWT Token Issued"),
+        (620, 660, 1180, 770, "Protected API Request"),
+        (620, 840, 1180, 950, "Middleware Token Verification"),
+        (620, 1020, 1180, 1130, "Access Granted / Denied"),
+    ]
+
+    for x1, y1, x2, y2, text in nodes:
+        draw_box(draw, (x1, y1, x2, y2), text)
+
+    for idx in range(len(nodes) - 1):
+        _, _, _, y2, _ = nodes[idx]
+        _, ny1, _, _, _ = nodes[idx + 1]
+        draw_arrow(draw, (900, y2), (900, ny1))
+
+    img.save(path)
+
+
+def create_product_lifecycle_flow(path: Path):
+    img = Image.new("RGB", (1800, 1100), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.text((40, 28), "Product Lifecycle Flow", fill=(18, 50, 92), font=get_font(38))
+
+    draw_box(draw, (120, 430, 460, 570), "Admin Adds Product")
+    draw_box(draw, (560, 210, 980, 350), "Validation + Upload")
+    draw_box(draw, (560, 430, 980, 570), "Product Saved in DB")
+    draw_box(draw, (560, 650, 980, 790), "List API Response")
+    draw_box(draw, (1120, 430, 1660, 570), "Visible in Frontend Collection")
+
+    draw_arrow(draw, (460, 500), (560, 280))
+    draw_arrow(draw, (460, 500), (560, 500))
+    draw_arrow(draw, (460, 500), (560, 720))
+    draw_arrow(draw, (980, 280), (1120, 500))
+    draw_arrow(draw, (980, 500), (1120, 500))
+    draw_arrow(draw, (980, 720), (1120, 500))
+
+    img.save(path)
+
+
+def ensure_flowcharts():
+    DIAGRAMS.mkdir(parents=True, exist_ok=True)
+    create_backend_module_flow(DIAGRAMS / "backend_module_flow.png")
+    create_auth_flow(DIAGRAMS / "auth_flow.png")
+    create_product_lifecycle_flow(DIAGRAMS / "product_lifecycle_flow.png")
+
+
+def find_existing_image(candidates) -> Optional[Path]:
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
+
+def get_ui_screenshots():
+    home = find_existing_image([
+        DIAGRAMS / "home_page_screenshot.png",
+        DIAGRAMS / "ui_home.png",
+        DIAGRAMS / "home_screen.png",
+        FRONTEND_ASSETS / "hero_img.png",
+    ])
+    collection = find_existing_image([
+        DIAGRAMS / "collection_page_screenshot.png",
+        DIAGRAMS / "ui_collection.png",
+        DIAGRAMS / "collection_screen.png",
+        FRONTEND_ASSETS / "p_img1.png",
+    ])
+    return home, collection
 
 
 def add_page_number(paragraph):
@@ -114,6 +253,7 @@ def add_table(doc, headers, rows):
 
 def build_docx():
     stats = load_stats()
+    home_shot, collection_shot = get_ui_screenshots()
     doc = Document()
 
     normal = doc.styles["Normal"]
@@ -123,14 +263,14 @@ def build_docx():
     # Cover page
     t = doc.add_paragraph()
     t.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = t.add_run("Ecommerce Platform\nProject Report")
+    r = t.add_run("Ecommerce Platform\nProject Submission Report")
     r.bold = True
     r.font.size = Pt(30)
     r.font.color.rgb = RGBColor(15, 49, 93)
 
     s = doc.add_paragraph()
     s.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    sr = s.add_run("College Submission Edition | Professional Formatting")
+    sr = s.add_run("Academic Submission Edition | Professional Format")
     sr.italic = True
     sr.font.size = Pt(14)
 
@@ -147,7 +287,7 @@ def build_docx():
         f"Student Name: {STUDENT_NAME}\n"
         f"Roll Number: {ROLL_NUMBER}\n"
         "Department: MCA\n"
-        "Guide: ____________________"
+        "Project Guide: ____________________"
     )
 
     # Start main section with headers/footers
@@ -164,22 +304,22 @@ def build_docx():
     add_page_number(footer)
 
     heading(doc, "Certificate", 20)
-    paragraph(doc, "This is to certify that this project report titled 'Ecommerce Platform' is submitted in partial fulfillment of the requirements for the academic program. The work presented is original and carried out under approved supervision.")
+    paragraph(doc, "This is to certify that the project report titled 'Ecommerce Platform' is an original work carried out by the candidate under approved academic supervision and is submitted in partial fulfillment of the requirements of the MCA program.")
 
     doc.add_page_break()
     heading(doc, "Declaration", 20)
-    paragraph(doc, "I hereby declare that the project work presented in this report is my own and has been completed under guidance. Any external references, tools, and frameworks have been acknowledged appropriately.")
+    paragraph(doc, "I hereby declare that this report and the software artifacts presented in it are my original work, completed as part of the curriculum requirements under faculty guidance. All external references, frameworks, and learning resources used in this project have been duly acknowledged.")
 
     doc.add_page_break()
     heading(doc, "Acknowledgement", 20)
-    paragraph(doc, "I sincerely thank my faculty guide, department, peers, and family members for their support and guidance in completing this project. Their encouragement and technical input helped shape this work into a complete deployable system.")
+    paragraph(doc, "I express my sincere gratitude to my faculty guide, department members, and peers for their support, technical guidance, and continuous feedback throughout the development of this project. Their mentorship played a key role in delivering a complete and stable implementation.")
 
     doc.add_page_break()
     heading(doc, "Abstract", 20)
-    paragraph(doc, "This report presents a full-stack ecommerce platform with customer frontend, admin panel, and backend service layer. The solution is built with React, Express, and MongoDB. The current stable release supports Cash On Delivery (COD) payment mode, user authentication, product catalog management, cart operations, and order lifecycle tracking.")
+    paragraph(doc, "This report presents the design and implementation of a full-stack ecommerce platform composed of a customer storefront, an administrative console, and a backend API service. The solution is implemented using React, Node.js/Express, and MongoDB. The current production-ready baseline supports secure authentication, product catalog management, cart operations, Cash on Delivery (COD) checkout, and end-to-end order lifecycle tracking.")
 
     doc.add_page_break()
-    heading(doc, "Index", 20)
+    heading(doc, "Table of Contents", 20)
     index_items = [
         "1. Introduction",
         "2. Objectives",
@@ -206,7 +346,7 @@ def build_docx():
     bullets(doc, index_items)
 
     chapters = [
-        ("1. Introduction", "The ecommerce platform addresses a practical online retail workflow from product discovery to order fulfillment. The project is designed to be modular, easy to maintain, and suitable for academic demonstration and viva presentation.", [
+        ("1. Introduction", "The ecommerce platform addresses a complete online retail workflow from product discovery to fulfillment. The project is structured for maintainability, extensibility, and clarity during academic evaluation.", [
             "Supports customer browsing and ordering.",
             "Includes admin controls for products and orders.",
             "Built with real-world full-stack architecture.",
@@ -217,7 +357,7 @@ def build_docx():
             "Enable COD-only order flow for operational simplicity.",
             "Provide clean setup documentation for evaluators.",
         ]),
-        ("3. Existing System Study", "A study of generic ecommerce templates showed common limitations such as weak admin flows, insufficient documentation, and unstable payment integration dependencies.", [
+        ("3. Existing System Study", "A review of common ecommerce starter templates identified practical limitations such as weak admin operations, incomplete documentation, and unnecessary payment-gateway complexity for initial releases.", [
             "Lack of clean project modularization.",
             "Unclear deployment setup.",
             "Limited operational reporting structure.",
@@ -232,7 +372,7 @@ def build_docx():
             "Reusable middleware and controllers.",
             "Scalable path for future modules.",
         ]),
-        ("6. Technology Stack", "Modern JavaScript ecosystem technologies are strategically selected for rapid development, maintainability, and market-aligned skills. The stack emphasizes separation of concerns with independent frontend, admin, and backend services, enabling scalable team collaboration and independent deployment cycles.", [
+        ("6. Technology Stack", "The technology stack is selected to balance rapid implementation, maintainability, and production-readiness. The architecture separates frontend, admin, and backend concerns for independent evolution and deployment.", [
             "Frontend Framework: React 18+ for declarative UI rendering with hooks-based state management and component reusability.",
             "Build Tool: Vite for fast HMR (Hot Module Replacement) dev server and optimized production bundling with ES6 module federation.",
             "Styling: Tailwind CSS utility-first framework for consistent design system without custom CSS files.",
@@ -246,7 +386,7 @@ def build_docx():
             "Database: MongoDB Atlas/Community Edition with replica set support for ACID transactions and horizontal scalability.",
             "Password Security: bcrypt library for irreversible password hashing with configurable work factors against brute-force attacks.",
             "Environment Config: dotenv for .env file parsing enabling environment-specific configurations without hardcoding secrets.",
-            "Image Hosting: Cloudinary integration for on-demand image transformation and global CDN delivery.",
+            "Image Handling: Multer-based upload flow with optional Cloudinary integration for scalable media delivery.",
             "Development Tools: Postman for API endpoint testing and documentation; Git for version control with branching strategy.",
         ]),
         ("7. Frontend Module", "Frontend module handles catalog rendering, product detail navigation, cart updates, and order placement.", [
@@ -259,20 +399,21 @@ def build_docx():
             "View all orders.",
             "Update order status lifecycle.",
         ]),
-        ("9. Backend Module", "Backend module exposes REST APIs for user, product, cart, and order domains with middleware-based protection.", [
-            "Route-controller-model structure.",
-            "JWT auth middleware for protected endpoints.",
-            "Uniform JSON responses for integration consistency.",
+        ("9. Backend Module", "Backend implementation uses an Express route-controller-model architecture with dedicated middleware for authentication, admin authorization, and file uploads.", [
+            "Route groups: /api/user, /api/product, /api/cart, /api/order.",
+            "Middleware: auth.js, adminAuth.js, and multer upload pipeline.",
+            "Startup pipeline includes DB connect and initial data seeding.",
         ]),
         ("10. Database Design", "MongoDB schemas define users, products, and orders with flexible but controlled document structures.", [
             "Order includes status, paymentMethod, payment flags.",
             "Product includes category, subCategory, size and image arrays.",
             "User schema includes persistent cart object.",
         ]),
-        ("11. API Design", "API design follows domain grouping and clear route naming conventions for maintainability.", [
-            "User APIs: register, login, admin login.",
-            "Product APIs: add, list, remove, single.",
-            "Order APIs: place, list, status update, user orders.",
+        ("11. API Design", "The API follows domain-based route grouping and clear naming conventions to improve maintainability and predictable client integration.", [
+            "User APIs: /register, /login, /admin.",
+            "Product APIs: /add, /list, /remove, /single.",
+            "Cart APIs: /add, /get, /update.",
+            "Order APIs: /place, /list, /status, /userorders.",
         ]),
         ("12. Authentication and Security", "Security model combines JWT protection with admin credential checks. Additional hardening recommendations are included from OWASP and Express guidance.", [
             "Secure token verification middleware.",
@@ -284,7 +425,7 @@ def build_docx():
             "Submit order to backend place endpoint.",
             "Persist order and clear cart on success.",
         ]),
-        ("14. Testing Strategy", "Testing combines manual and automated checks for confidence before demo or deployment.", [
+        ("14. Testing Strategy", "Testing combines endpoint verification and user-journey validation to establish confidence before demonstration or deployment.", [
             "API smoke testing for critical routes.",
             "Form validation checks for checkout and login.",
             "Order lifecycle verification from user and admin screens.",
@@ -294,7 +435,7 @@ def build_docx():
             "Price spread supports realistic catalog simulation.",
             "Data quality enables meaningful viva discussion.",
         ]),
-        ("16. Deployment Guide", "Deployment process is documented with separate startup commands and env templates for each app.", [
+        ("16. Deployment Guide", "The deployment process is documented with separate startup commands and environment templates for each application.", [
             "Run backend, frontend, and admin in separate terminals.",
             "Configure environment values from .env.example files.",
             "Seed products for first-time setup.",
@@ -309,12 +450,12 @@ def build_docx():
             "Analytics dashboard and sales reporting.",
             "Inventory alerts and coupon engine.",
         ]),
-        ("19. Conclusion", "The project successfully demonstrates full-stack ecommerce development with modular architecture, practical operations, and clear documentation quality suitable for academic submission and viva.", [
+        ("19. Conclusion", "The project demonstrates a complete full-stack ecommerce implementation with modular architecture, practical operational workflows, and professional documentation suitable for academic submission and viva evaluation.", [
             "Functional completeness achieved for core commerce workflow.",
             "Professional documentation and presentation assets prepared.",
             "Ready for academic evaluation and demo.",
         ]),
-        ("20. References", "Authoritative references used for best-practice alignment:", [
+        ("20. References", "The following references were used to align implementation decisions with widely accepted best practices:", [
             "OWASP API Security Top 10: https://owasp.org/API-Security/",
             "Express Security Best Practices: https://expressjs.com/en/advanced/best-practice-security.html",
             "MongoDB Index Types: https://www.mongodb.com/docs/manual/core/indexes/index-types/",
@@ -333,11 +474,37 @@ def build_docx():
                 paragraph(doc, "Figure: High-level architecture flowchart", align=WD_ALIGN_PARAGRAPH.LEFT)
                 doc.add_picture(str(arch), width=Inches(6.2))
 
+        if idx == 7:
+            if home_shot is not None:
+                paragraph(doc, "Figure: Home page visual", align=WD_ALIGN_PARAGRAPH.LEFT)
+                doc.add_picture(str(home_shot), width=Inches(6.2))
+            if collection_shot is not None:
+                paragraph(doc, "Figure: Collection page visual", align=WD_ALIGN_PARAGRAPH.LEFT)
+                doc.add_picture(str(collection_shot), width=Inches(6.2))
+
+        if idx == 9:
+            backend_flow = DIAGRAMS / "backend_module_flow.png"
+            if backend_flow.exists():
+                paragraph(doc, "Figure: Backend module flow", align=WD_ALIGN_PARAGRAPH.LEFT)
+                doc.add_picture(str(backend_flow), width=Inches(6.2))
+
+        if idx == 12:
+            auth_flow = DIAGRAMS / "auth_flow.png"
+            if auth_flow.exists():
+                paragraph(doc, "Figure: Authentication flowchart", align=WD_ALIGN_PARAGRAPH.LEFT)
+                doc.add_picture(str(auth_flow), width=Inches(6.2))
+
         if idx == 13:
             flow = DIAGRAMS / "order_flow.png"
             if flow.exists():
                 paragraph(doc, "Figure: COD checkout process flowchart", align=WD_ALIGN_PARAGRAPH.LEFT)
                 doc.add_picture(str(flow), width=Inches(6.2))
+
+        if idx == 15:
+            product_flow = DIAGRAMS / "product_lifecycle_flow.png"
+            if product_flow.exists():
+                paragraph(doc, "Figure: Product lifecycle flowchart", align=WD_ALIGN_PARAGRAPH.LEFT)
+                doc.add_picture(str(product_flow), width=Inches(6.2))
 
     doc.add_page_break()
     heading(doc, "21. Appendix", 19)
@@ -347,6 +514,28 @@ def build_docx():
         add_table(doc, ["Category", "Count"], category_rows)
     else:
         paragraph(doc, "No category records available.")
+
+    doc.add_page_break()
+    heading(doc, "Appendix B: Additional Flowcharts", 17)
+    appendix_flows = [
+        ("Backend Module Flow", DIAGRAMS / "backend_module_flow.png"),
+        ("Authentication Flow", DIAGRAMS / "auth_flow.png"),
+        ("Product Lifecycle Flow", DIAGRAMS / "product_lifecycle_flow.png"),
+    ]
+    for caption, path in appendix_flows:
+        if path.exists():
+            paragraph(doc, f"Figure: {caption}", align=WD_ALIGN_PARAGRAPH.LEFT)
+            doc.add_picture(str(path), width=Inches(6.2))
+
+    if home_shot is not None or collection_shot is not None:
+        doc.add_page_break()
+        heading(doc, "Appendix C: UI Screenshots", 17)
+        if home_shot is not None:
+            paragraph(doc, "Figure: Home page screenshot", align=WD_ALIGN_PARAGRAPH.LEFT)
+            doc.add_picture(str(home_shot), width=Inches(6.2))
+        if collection_shot is not None:
+            paragraph(doc, "Figure: Collection page screenshot", align=WD_ALIGN_PARAGRAPH.LEFT)
+            doc.add_picture(str(collection_shot), width=Inches(6.2))
 
     DOCS.mkdir(parents=True, exist_ok=True)
     doc.save(DOCX_OUT)
@@ -515,6 +704,7 @@ def add_image_slide(prs, title, image_path, caption):
 
 def build_pptx():
     stats = load_stats()
+    home_shot, collection_shot = get_ui_screenshots()
 
     prs = Presentation()
     prs.slide_width = Inches(13.333)
@@ -523,7 +713,7 @@ def build_pptx():
     # SLIDE 1: Title Slide
     title = prs.slides.add_slide(prs.slide_layouts[6])
     add_brand_background(title)
-    add_slide_title(title, "Ecommerce Platform", "Full-Stack Demonstration | Professional Edition")
+    add_slide_title(title, "Ecommerce Platform", "Academic Viva Presentation | Professional Edition")
 
     badge = title.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(2.2), Inches(6.0), Inches(1.0))
     badge.fill.solid()
@@ -572,11 +762,11 @@ def build_pptx():
 
     # SLIDE 3: Problem & Objectives
     add_bullet_slide(prs, "Problem Statement", [
-        "Market Need: Lack of modular, well-documented ecommerce solutions for learning",
-        "Academic Gap: Students need real-world full-stack project with clear architecture",
-        "Business Need: Simplified COD payment model for MVP reliability",
-        "Technical Need: Clean separation of concerns (frontend, admin, backend)",
-        "Presentation Need: Professional documentation and viva-ready demonstration"
+        "Learning Need: A complete, production-style full-stack implementation for academic evaluation",
+        "Architecture Need: Clear separation of concerns across frontend, admin, and backend",
+        "Operational Need: Stable COD-first checkout for reliable demonstrations",
+        "Documentation Need: Structured technical report and viva-ready presentation",
+        "Scalability Need: Foundation that can evolve toward payment gateways and analytics"
     ])
 
     # SLIDE 4: Project Objectives
@@ -627,26 +817,30 @@ def build_pptx():
 
     # SLIDE 11: Backend API Structure
     add_bullet_slide(prs, "Backend API Organization", [
-        "User Routes: /api/user (register, login, profile)",
-        "Product Routes: /api/product (add, list, fetch, delete)",
-        "Cart Routes: /api/cart (add, remove, fetch, clear)",
-        "Order Routes: /api/order (place, list, update status, user orders)",
-        "Admin Routes: /api/admin (dashboard, analytics, reports)"
+        "User Routes: /api/user (register, login, admin login)",
+        "Product Routes: /api/product (add, list, remove, single)",
+        "Cart Routes: /api/cart (add, get, update)",
+        "Order Routes: /api/order (place, list, status, userorders)",
+        "Route-level middleware enforces auth and admin access controls"
     ])
 
-    # SLIDE 12: Database Schema
+    # SLIDE 12A: Backend Flow
+    add_image_slide(prs, "Backend Module Flow", DIAGRAMS / "backend_module_flow.png",
+        "Express route -> controller -> middleware -> model pipeline with MongoDB persistence")
+
+    # SLIDE 13: Database Schema
     add_two_column_slide(prs, "MongoDB Collections",
         ["User Schema:", "• ID, Email, Password Hash", "• Name, Address, Phone", "• Cart Array (Items)", "• Auth Tokens, Timestamps"],
         ["Product Schema:", "• ID, Name, Category", "• Price, Description", "• Images Array", "• Sizes, Stock Level"]
     )
 
-    # SLIDE 13: Order Model
+    # SLIDE 14: Order Model
     add_two_column_slide(prs, "Order & Payment Models",
         ["Order Schema:", "• User Reference", "• Items Array", "• Delivery Address", "• Order Date & Status"],
         ["Payment Flow:", "• Payment Method: COD", "• Status Transitions", "• Date Tracking", "• Admin Updates"]
     )
 
-    # SLIDE 14: Authentication
+    # SLIDE 15: Authentication
     add_bullet_slide(prs, "Authentication & Security", [
         "JWT Implementation: Secure token generation and verification",
         "Password Security: bcrypt hashing with salt rounds",
@@ -655,7 +849,11 @@ def build_pptx():
         "Environment Secrets: Credentials via .env files, never hardcoded"
     ])
 
-    # SLIDE 15: COD Checkout Flow
+    # SLIDE 16: Auth Flowchart
+    add_image_slide(prs, "Authentication Flowchart", DIAGRAMS / "auth_flow.png",
+        "Credential validation, JWT issuance, and middleware-based access control")
+
+    # SLIDE 17: COD Checkout Flow
     add_bullet_slide(prs, "Cash On Delivery Flow", [
         "Step 1: Customer reviews cart items and prices",
         "Step 2: Enter delivery address and phone number",
@@ -664,13 +862,25 @@ def build_pptx():
         "Step 5: Cart cleared, order appears in history and admin dashboard"
     ])
 
-    # SLIDE 16: Checkout Process Diagram
+    # SLIDE 18: Checkout Process Diagram
     add_image_slide(prs, "Order Processing Pipeline", DIAGRAMS / "order_flow.png", 
         "COD checkout simplified: No external gateway, single backend endpoint")
 
-    # SLIDE 17: Admin Operations
+    # SLIDE 19: Admin Operations
     add_image_slide(prs, "Admin Workflow", DIAGRAMS / "admin_flow.png", 
         "Admin authentication and operational monitoring lifecycle")
+
+    # SLIDE 20: Product Lifecycle Diagram
+    add_image_slide(prs, "Product Lifecycle Flowchart", DIAGRAMS / "product_lifecycle_flow.png",
+        "Admin add/update actions reflected in catalog API responses and storefront rendering")
+
+    # SLIDE 21: UI Screenshots
+    if home_shot is not None:
+        add_image_slide(prs, "Application UI - Home", home_shot,
+            "Home page layout used in the customer storefront")
+    if collection_shot is not None:
+        add_image_slide(prs, "Application UI - Collection", collection_shot,
+            "Collection and filtering interface used in product browsing")
 
     # SLIDE 18: Data Statistics
     add_bullet_slide(prs, "Dataset & Metrics", [
@@ -692,7 +902,7 @@ def build_pptx():
         "HTTPS/TLS: Encrypted data transmission",
         "CORS Configuration: Controlled cross-origin requests",
         "Input Validation: Sanitize all user inputs",
-        "SQL Injection Prevention: Mongoose parameterized queries",
+        "NoSQL Injection Mitigation: Validate and sanitize query/body payloads",
         "Recommended Additions: Helmet.js, rate limiting, audit logging"
     ])
 
@@ -731,11 +941,11 @@ def build_pptx():
 
     # SLIDE 25: Viva Q&A - Cart Sync
     add_bullet_slide(prs, "Viva Q&A: Cart Synchronization", [
-        "Local Storage: Frontend maintains cart in browser for UI responsiveness",
-        "Database Sync: Cart array persisted in user document on backend",
-        "Authentication: Logged-in users sync via API /api/cart endpoints",
-        "Guest Checkout: Local-only cart without account required",
-        "Consistency: Backend is source of truth for finalized orders"
+        "Client State: Frontend context updates cart instantly for responsive UX",
+        "Server Persistence: Cart data is synchronized through /api/cart endpoints",
+        "Authentication: Token-based calls protect user-specific cart data",
+        "Consistency: Backend remains the source of truth for order creation",
+        "Reliability: Sync after mutations prevents stale cart snapshots"
     ])
 
     # SLIDE 26: Viva Q&A - Scalability
@@ -770,11 +980,11 @@ def build_pptx():
 
     # SLIDE 30: Conclusion
     add_bullet_slide(prs, "Project Conclusion", [
-        "Complete full-stack ecommerce solution with production-quality code",
-        "Professional documentation suitable for academic evaluation",
-        "Security-hardened with best practices from OWASP guidelines",
-        "Scalable architecture ready for enhancement and deployment",
-        "Ready for viva presentation and real-world deployment"
+        "Complete full-stack ecommerce solution with a stable COD-first workflow",
+        "Professional documentation suitable for institutional evaluation",
+        "Security-aware implementation aligned with OWASP recommendations",
+        "Modular architecture ready for iterative enhancements",
+        "Prepared for viva presentation and guided deployment"
     ])
 
     # SLIDE 31: Thank You
@@ -803,6 +1013,7 @@ def build_pptx():
 
 
 def main():
+    ensure_flowcharts()
     build_docx()
     build_pptx()
     print(f"Created: {DOCX_OUT}")
